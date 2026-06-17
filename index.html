@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="theme-color" content="#f7f8fb">
+    <meta name="description" content="学生向けの税金・扶養管理ダッシュボード">
+    <title>扶養メーター</title>
+    <link rel="manifest" href="manifest.webmanifest">
+    <link rel="icon" href="icon.svg" type="image/svg+xml">
+    <link rel="stylesheet" href="styles.css">
+  </head>
+  <body>
+    <main class="app-shell">
+      <section class="top-panel" aria-labelledby="app-title">
+        <div class="title-row">
+          <div>
+            <p class="kicker">学生向け 税金・扶養管理</p>
+            <h1 id="app-title">扶養メーター</h1>
+          </div>
+          <button class="icon-button" id="resetButton" type="button" aria-label="入力をリセット" title="入力をリセット">
+            <span aria-hidden="true">↺</span>
+          </button>
+        </div>
+
+        <div id="alertArea" class="alert-area" aria-live="polite"></div>
+
+        <div class="summary-grid">
+          <article class="summary-item summary-main">
+            <span class="label">今年の見込み年収</span>
+            <strong id="forecastTotal">0円</strong>
+          </article>
+          <article class="summary-item">
+            <span class="label">103万円まで</span>
+            <strong id="remaining103">0円</strong>
+          </article>
+          <article class="summary-item">
+            <span class="label">130万円まで</span>
+            <strong id="remaining130">0円</strong>
+          </article>
+        </div>
+
+        <div class="progress-card" aria-label="年収見込みの進捗">
+          <div class="progress-meta">
+            <span id="actualTotal">実績 0円</span>
+            <span id="predictedTotal">予測 0円</span>
+          </div>
+          <div class="progress-track" id="progressTrack">
+            <div class="progress-fill actual" id="actualBar"></div>
+            <div class="progress-fill predicted" id="predictedBar"></div>
+            <div class="threshold-marker marker-103" aria-hidden="true"><span>103万</span></div>
+            <div class="threshold-marker marker-130" aria-hidden="true"><span>130万</span></div>
+          </div>
+          <div class="progress-scale">
+            <span>0</span>
+            <span>年収上限目安 130万円</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="control-panel" aria-labelledby="shift-title">
+        <div class="section-heading">
+          <h2 id="shift-title">今後の平均シフト代</h2>
+          <output id="monthlyOutput" for="monthlyRange monthlyInput">0円</output>
+        </div>
+        <div class="control-row">
+          <input id="monthlyRange" type="range" min="0" max="200000" step="5000" value="80000" aria-label="今後の平均シフト代">
+          <label class="money-input">
+            <span>月額</span>
+            <input id="monthlyInput" type="number" min="0" max="999999" step="1000" inputmode="numeric" value="80000">
+          </label>
+        </div>
+        <div class="quick-actions" aria-label="よく使う月額">
+          <button type="button" data-preset="50000">5万円</button>
+          <button type="button" data-preset="80000">8万円</button>
+          <button type="button" data-preset="100000">10万円</button>
+          <button type="button" data-preset="120000">12万円</button>
+        </div>
+      </section>
+
+      <section class="month-panel" aria-labelledby="month-title">
+        <div class="section-heading">
+          <h2 id="month-title">月別の実績</h2>
+          <span class="subtle" id="actualCount">0か月入力済み</span>
+        </div>
+        <div class="month-list" id="monthList"></div>
+      </section>
+
+      <section class="diagnosis-panel" aria-labelledby="diagnosis-title">
+        <div class="section-heading">
+          <h2 id="diagnosis-title">確定申告・控除チェック</h2>
+          <span class="subtle">簡易診断</span>
+        </div>
+        <div class="question-grid">
+          <label><input type="checkbox" id="hasMultipleJobs"> 掛け持ち・単発バイトがある</label>
+          <label><input type="checkbox" id="taxWithheld"> 給与から所得税が引かれている</label>
+          <label><input type="checkbox" id="isStudent" checked> 12月31日時点で学生</label>
+          <label><input type="checkbox" id="hasOtherIncome"> 給与以外の所得がある</label>
+        </div>
+        <div class="diagnosis-result" id="diagnosisResult"></div>
+      </section>
+
+      <section class="note-panel" aria-labelledby="note-title">
+        <h2 id="note-title">制度メモ</h2>
+        <p>
+          このアプリはシフト調整の目安です。令和7年度税制改正により、所得税や扶養親族の所得要件は変更されています。
+          画面上の103万円・130万円は、学生がよく確認する従来の目安と社会保険の目安として残しています。
+        </p>
+        <div class="source-links">
+          <a href="https://www.nta.go.jp/users/gensen/2025kiso/index.htm" target="_blank" rel="noreferrer">国税庁: 令和7年度税制改正</a>
+          <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1175.htm" target="_blank" rel="noreferrer">国税庁: 勤労学生控除</a>
+        </div>
+      </section>
+    </main>
+    <script src="app.js" defer></script>
+  </body>
+</html>
