@@ -2,6 +2,8 @@ const STORAGE_KEY = "fuyo-meter-v1";
 const TAX_WALL = 1030000;
 const SOCIAL_WALL = 1300000;
 const MAX_BAR = SOCIAL_WALL;
+const MAX_MONTHLY_ESTIMATE = 300000;
+const MAX_MONTH_AMOUNT = 500000;
 const MONTHS = Array.from({ length: 12 }, (_, index) => `${index + 1}月`);
 const DEFAULT_CHECKS = {
   hasMultipleJobs: false,
@@ -20,13 +22,18 @@ const elements = {
   predictedTotal: document.querySelector("#predictedTotal"),
   actualBar: document.querySelector("#actualBar"),
   predictedBar: document.querySelector("#predictedBar"),
+  progressTrack: document.querySelector("#progressTrack"),
   monthlyRange: document.querySelector("#monthlyRange"),
   monthlyInput: document.querySelector("#monthlyInput"),
   monthlyOutput: document.querySelector("#monthlyOutput"),
   monthList: document.querySelector("#monthList"),
   actualCount: document.querySelector("#actualCount"),
+  targetYearLabel: document.querySelector("#targetYearLabel"),
   diagnosisResult: document.querySelector("#diagnosisResult"),
   resetButton: document.querySelector("#resetButton"),
+  resetDialog: document.querySelector("#resetDialog"),
+  cancelResetButton: document.querySelector("#cancelResetButton"),
+  confirmResetButton: document.querySelector("#confirmResetButton"),
   hasMultipleJobs: document.querySelector("#hasMultipleJobs"),
   taxWithheld: document.querySelector("#taxWithheld"),
   isStudent: document.querySelector("#isStudent"),
@@ -37,26 +44,67 @@ function createInitialMonths() {
   return MONTHS.map(() => ({ amount: 0, isActual: false }));
 }
 
+function getCurrentYear() {
+  return new Date().getFullYear();
+}
+
+function hasSavedProgress(saved) {
+  const hasMonthData = Array.isArray(saved.months) && saved.months.some((month) => Boolean(month.isActual) || Number(month.amount) > 0);
+  const hasCustomEstimate = Number(saved.monthlyEstimate) && Number(saved.monthlyEstimate) !== 80000;
+  const hasCustomChecks = saved.checks && JSON.stringify({ ...DEFAULT_CHECKS, ...saved.checks }) !== JSON.stringify(DEFAULT_CHECKS);
+  return hasMonthData || hasCustomEstimate || hasCustomChecks;
+}
+
+function createDefaultState(targetYear = getCurrentYear()) {
+  return {
+    targetYear,
+    monthlyEstimate: 80000,
+    months: createInitialMonths(),
+    checks: { ...DEFAULT_CHECKS }
+  };
+}
+
+function sanitizeMoney(value, max) {
+  const amount = Number(value);
+  if (!Number.isFinite(amount)) {
+    return 0;
+  }
+  return Math.min(max, Math.max(0, Math.round(amount)));
+}
+
 function loadState() {
   try {
     const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
     if (!saved || !Array.isArray(saved.months) || saved.months.length !== 12) {
       throw new Error("Invalid saved data");
     }
+
+    const currentYear = getCurrentYear();
+    const savedYear = Number(saved.targetYear) || currentYear;
+    if (savedYear !== currentYear && hasSavedProgress(saved)) {
+      const startNewYear = window.confirm(`${savedYear}年のデータが残っています。${currentYear}年の新しい記録を始めますか？`);
+      if (startNewYear) {
+        const nextState = createDefaultState(currentYear);
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+        return nextState;
+      }
+    } else if (savedYear !== currentYear) {
+      const nextState = createDefaultState(currentYear);
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(nextState));
+      return nextState;
+    }
+
     return {
-      monthlyEstimate: Number(saved.monthlyEstimate) || 80000,
+      targetYear: savedYear,
+      monthlyEstimate: sanitizeMoney(saved.monthlyEstimate || 80000, MAX_MONTHLY_ESTIMATE),
       months: saved.months.map((month) => ({
-        amount: Math.max(0, Number(month.amount) || 0),
+        amount: sanitizeMoney(month.amount || 0, MAX_MONTH_AMOUNT),
         isActual: Boolean(month.isActual)
       })),
       checks: { ...DEFAULT_CHECKS, ...(saved.checks || {}) }
     };
   } catch {
-    return {
-      monthlyEstimate: 80000,
-      months: createInitialMonths(),
-      checks: { ...DEFAULT_CHECKS }
-    };
+    return createDefaultState();
   }
 }
 
@@ -114,6 +162,7 @@ function updateAlerts(total) {
 
 function updateSummary() {
   const totals = getTotals();
+  const progressState = totals.total > SOCIAL_WALL ? "danger" : totals.total > TAX_WALL ? "warning" : "ok";
   elements.forecastTotal.textContent = yen(totals.total);
   elements.remaining103.textContent = signedRemaining(TAX_WALL, totals.total);
   elements.remaining130.textContent = signedRemaining(SOCIAL_WALL, totals.total);
@@ -124,11 +173,13 @@ function updateSummary() {
   const totalWidth = Math.min(100, (totals.total / MAX_BAR) * 100);
   elements.actualBar.style.width = `${actualWidth}%`;
   elements.predictedBar.style.width = `${totalWidth}%`;
+  elements.progressTrack.dataset.state = progressState;
 
   elements.monthlyOutput.textContent = yen(state.monthlyEstimate);
   elements.monthlyRange.value = Math.min(Number(elements.monthlyRange.max), state.monthlyEstimate);
   elements.monthlyInput.value = state.monthlyEstimate;
   elements.actualCount.textContent = `${state.months.filter((month) => month.isActual).length}か月入力済み`;
+  elements.targetYearLabel.textContent = `${state.targetYear}年の記録`;
 
   updateAlerts(totals.total);
   updateDiagnosis(totals.total);
@@ -136,21 +187,29 @@ function updateSummary() {
 
 function renderMonths() {
   const currentMonth = new Date().getMonth();
+  const isActiveYear = state.targetYear === getCurrentYear();
   elements.monthList.innerHTML = "";
 
   state.months.forEach((month, index) => {
     const row = document.createElement("label");
-    row.className = `month-row ${month.isActual ? "is-actual" : ""} ${index === currentMonth ? "is-current" : ""}`;
+    row.className = `month-row ${month.isActual ? "is-actual" : "is-predicted"} ${isActiveYear && index === currentMonth ? "is-current" : ""}`;
 
     const name = document.createElement("span");
     name.className = "month-name";
     name.textContent = MONTHS[index];
+    if (isActiveYear && index === currentMonth) {
+      const badge = document.createElement("span");
+      badge.className = "current-badge";
+      badge.textContent = "今月";
+      name.append(badge);
+    }
 
     const input = document.createElement("input");
     input.type = "number";
     input.min = "0";
     input.step = "1000";
     input.inputMode = "numeric";
+    input.max = String(MAX_MONTH_AMOUNT);
     input.placeholder = yen(state.monthlyEstimate);
     input.value = month.isActual ? month.amount : "";
     input.ariaLabel = `${MONTHS[index]}の実績金額`;
@@ -160,11 +219,16 @@ function renderMonths() {
     stateLabel.textContent = month.isActual ? "実績" : yen(state.monthlyEstimate);
 
     input.addEventListener("input", () => {
-      const value = input.value === "" ? 0 : Math.max(0, Number(input.value) || 0);
+      const value = input.value === "" ? 0 : sanitizeMoney(input.value, MAX_MONTH_AMOUNT);
+      if (input.value !== "" && Number(input.value) !== value) {
+        input.value = value;
+      }
       month.amount = value;
       month.isActual = input.value !== "";
+      row.classList.toggle("is-actual", month.isActual);
+      row.classList.toggle("is-predicted", !month.isActual);
+      stateLabel.textContent = month.isActual ? "実績" : yen(state.monthlyEstimate);
       saveState();
-      renderMonths();
       updateSummary();
     });
 
@@ -174,7 +238,7 @@ function renderMonths() {
 }
 
 function setMonthlyEstimate(value) {
-  state.monthlyEstimate = Math.max(0, Math.round(Number(value) || 0));
+  state.monthlyEstimate = sanitizeMoney(value, MAX_MONTHLY_ESTIMATE);
   saveState();
   renderMonths();
   updateSummary();
@@ -201,6 +265,17 @@ function updateDiagnosis(total) {
   elements.diagnosisResult.textContent = notes.join(" ");
 }
 
+function resetAllData() {
+  state.monthlyEstimate = 80000;
+  state.targetYear = getCurrentYear();
+  state.months = createInitialMonths();
+  state.checks = { ...DEFAULT_CHECKS };
+  syncChecksToDom();
+  saveState();
+  renderMonths();
+  updateSummary();
+}
+
 function bindEvents() {
   elements.monthlyRange.addEventListener("input", (event) => setMonthlyEstimate(event.target.value));
   elements.monthlyInput.addEventListener("input", (event) => setMonthlyEstimate(event.target.value));
@@ -210,13 +285,20 @@ function bindEvents() {
   });
 
   elements.resetButton.addEventListener("click", () => {
-    state.monthlyEstimate = 80000;
-    state.months = createInitialMonths();
-    state.checks = { ...DEFAULT_CHECKS };
-    syncChecksToDom();
-    saveState();
-    renderMonths();
-    updateSummary();
+    if (typeof elements.resetDialog.showModal === "function") {
+      elements.resetDialog.showModal();
+    } else if (window.confirm("すべてのデータをリセットしますか？入力済みの実績も削除されます。")) {
+      resetAllData();
+    }
+  });
+
+  elements.cancelResetButton.addEventListener("click", () => {
+    elements.resetDialog.close("cancel");
+  });
+
+  elements.confirmResetButton.addEventListener("click", () => {
+    elements.resetDialog.close("reset");
+    resetAllData();
   });
 
   ["hasMultipleJobs", "taxWithheld", "isStudent", "hasOtherIncome"].forEach((key) => {

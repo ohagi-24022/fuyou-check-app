@@ -75,6 +75,7 @@ input {
 }
 
 .kicker,
+.year-label,
 .label,
 .subtle,
 .progress-meta,
@@ -88,6 +89,12 @@ input {
   margin: 0 0 2px;
   font-size: 0.78rem;
   font-weight: 700;
+}
+
+.year-label {
+  margin-top: 6px;
+  font-size: 0.82rem;
+  font-weight: 800;
 }
 
 h1,
@@ -216,6 +223,22 @@ h2 {
   z-index: 1;
 }
 
+.progress-track[data-state="warning"] .progress-fill.actual {
+  background: var(--warning);
+}
+
+.progress-track[data-state="warning"] .progress-fill.predicted {
+  background: #facc15;
+}
+
+.progress-track[data-state="danger"] .progress-fill.actual {
+  background: var(--danger);
+}
+
+.progress-track[data-state="danger"] .progress-fill.predicted {
+  background: #fb7185;
+}
+
 .threshold-marker {
   position: absolute;
   top: -6px;
@@ -260,6 +283,14 @@ input[type="range"] {
   flex: 1;
   min-width: 120px;
   accent-color: var(--actual);
+}
+
+.progress-track[data-state="warning"] ~ .progress-scale {
+  color: var(--warning);
+}
+
+.progress-track[data-state="danger"] ~ .progress-scale {
+  color: var(--danger);
 }
 
 .money-input {
@@ -307,12 +338,28 @@ input[type="range"] {
   border: 1px solid var(--line);
   border-radius: 8px;
   padding: 9px;
-  background: #fff;
+  background: #f8fafc;
+  transition: background 160ms ease, border-color 160ms ease, box-shadow 160ms ease;
 }
 
 .month-name {
   min-width: 46px;
   font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.current-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 2px 7px;
+  border-radius: 999px;
+  background: #101828;
+  color: #fff;
+  font-size: 0.72rem;
+  line-height: 1;
 }
 
 .month-state {
@@ -327,8 +374,30 @@ input[type="range"] {
   color: var(--actual);
 }
 
+.month-row.is-actual {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.month-row.is-actual input {
+  border-color: #93c5fd;
+  background: #fff;
+  font-weight: 800;
+}
+
+.month-row.is-predicted {
+  color: #475569;
+}
+
+.month-row.is-predicted input {
+  background: #f8fafc;
+  color: #94a3b8;
+}
+
 .month-row.is-current {
-  border-color: #94a3b8;
+  border-color: #0f766e;
+  background: #ecfdf5;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
 }
 
 .month-row input {
@@ -389,6 +458,57 @@ input[type="range"] {
   font-size: 0.86rem;
 }
 
+.reset-dialog {
+  width: min(calc(100% - 32px), 420px);
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0;
+  color: var(--ink);
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.22);
+}
+
+.reset-dialog::backdrop {
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.reset-dialog form {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.reset-dialog p {
+  color: var(--muted);
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.secondary-button,
+.danger-button {
+  min-height: 40px;
+  border-radius: 8px;
+  padding: 0 14px;
+  cursor: pointer;
+}
+
+.secondary-button {
+  border: 1px solid var(--line);
+  background: #fff;
+  color: var(--ink);
+}
+
+.danger-button {
+  border: 1px solid #fda4af;
+  background: var(--danger);
+  color: #fff;
+  font-weight: 800;
+}
+
 @media (max-width: 680px) {
   .summary-grid,
   .question-grid {
@@ -410,7 +530,7 @@ input[type="range"] {
 
   .month-row {
     display: grid;
-    grid-template-columns: 46px 1fr 58px;
+    grid-template-columns: 88px 1fr 58px;
   }
 
   .month-row input {

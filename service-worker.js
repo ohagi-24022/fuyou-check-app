@@ -1,4 +1,4 @@
-const CACHE_NAME = "fuyo-meter-v1";
+const CACHE_NAME = "fuyo-meter-v2";
 const ASSETS = [
   "./",
   "./index.html",

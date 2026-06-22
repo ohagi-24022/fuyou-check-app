@@ -17,6 +17,7 @@
           <div>
             <p class="kicker">学生向け 税金・扶養管理</p>
             <h1 id="app-title">扶養メーター</h1>
+            <p class="year-label" id="targetYearLabel">対象年</p>
           </div>
           <button class="icon-button" id="resetButton" type="button" aria-label="入力をリセット" title="入力をリセット">
             <span aria-hidden="true">↺</span>
@@ -67,7 +68,7 @@
           <input id="monthlyRange" type="range" min="0" max="200000" step="5000" value="80000" aria-label="今後の平均シフト代">
           <label class="money-input">
             <span>月額</span>
-            <input id="monthlyInput" type="number" min="0" max="999999" step="1000" inputmode="numeric" value="80000">
+            <input id="monthlyInput" type="number" min="0" max="300000" step="1000" inputmode="numeric" value="80000">
           </label>
         </div>
         <div class="quick-actions" aria-label="よく使う月額">
@@ -112,6 +113,17 @@
         </div>
       </section>
     </main>
+
+    <dialog class="reset-dialog" id="resetDialog" aria-labelledby="resetDialogTitle">
+      <form method="dialog">
+        <h2 id="resetDialogTitle">入力データをリセットしますか？</h2>
+        <p>月別の実績、予測設定、診断チェックをすべて初期状態に戻します。</p>
+        <div class="dialog-actions">
+          <button class="secondary-button" id="cancelResetButton" value="cancel" type="button">キャンセル</button>
+          <button class="danger-button" id="confirmResetButton" value="reset" type="button">リセット</button>
+        </div>
+      </form>
+    </dialog>
     <script src="app.js" defer></script>
   </body>
 </html>
