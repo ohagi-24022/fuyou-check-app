@@ -19,43 +19,115 @@
             <h1 id="app-title">扶養メーター</h1>
             <p class="year-label" id="targetYearLabel">対象年</p>
           </div>
-          <button class="icon-button" id="resetButton" type="button" aria-label="入力をリセット" title="入力をリセット">
-            <span aria-hidden="true">↺</span>
-          </button>
+          <div class="year-switcher" aria-label="年度切り替え">
+            <button class="icon-button" id="prevYearButton" type="button" aria-label="前年へ" title="前年へ">‹</button>
+            <button class="year-button" id="currentYearButton" type="button">2026年</button>
+            <button class="icon-button" id="nextYearButton" type="button" aria-label="翌年へ" title="翌年へ">›</button>
+          </div>
         </div>
 
+        <div id="storageAlert" class="alert-area" aria-live="polite"></div>
         <div id="alertArea" class="alert-area" aria-live="polite"></div>
 
-        <div class="summary-grid">
-          <article class="summary-item summary-main">
-            <span class="label">今年の見込み年収</span>
+        <div class="hero-summary">
+          <article class="hero-item">
+            <span class="label">今年の給与見込み</span>
             <strong id="forecastTotal">0円</strong>
           </article>
-          <article class="summary-item">
-            <span class="label">103万円まで</span>
-            <strong id="remaining103">0円</strong>
+          <article class="hero-item">
+            <span class="label">安全に働ける月額目安</span>
+            <strong id="safeMonthlyAmount">0円</strong>
           </article>
-          <article class="summary-item">
-            <span class="label">130万円まで</span>
-            <strong id="remaining130">0円</strong>
+          <article class="hero-item status-hero" id="overallStatusCard">
+            <span class="label">現在の状態</span>
+            <strong id="overallStatus">判定中</strong>
           </article>
         </div>
+      </section>
 
-        <div class="progress-card" aria-label="年収見込みの進捗">
-          <div class="progress-meta">
-            <span id="actualTotal">実績 0円</span>
-            <span id="predictedTotal">予測 0円</span>
+      <section class="settings-panel" aria-labelledby="profile-title">
+        <details open>
+          <summary>
+            <span>
+              <span class="section-title" id="profile-title">利用者設定</span>
+              <span class="subtle">年齢・働き方で判定基準が変わります</span>
+            </span>
+          </summary>
+          <div class="settings-grid">
+            <label>
+              <span>12月31日時点の年齢</span>
+              <input id="ageInput" type="number" min="15" max="80" step="1" inputmode="numeric">
+            </label>
+            <label>
+              <span>学生区分</span>
+              <select id="studentTypeSelect">
+                <option value="day">昼間学生</option>
+                <option value="correspondence">通信制</option>
+                <option value="evening">定時制</option>
+                <option value="leave">休学中</option>
+                <option value="none">学生ではない</option>
+              </select>
+            </label>
+            <label>
+              <span>収入の種類</span>
+              <select id="incomeTypeSelect">
+                <option value="salaryOnly">給与のみ</option>
+                <option value="otherIncome">給与以外の所得あり</option>
+              </select>
+            </label>
+            <label>
+              <span>勤務先</span>
+              <select id="jobCountSelect">
+                <option value="one">1か所</option>
+                <option value="multiple">2か所以上</option>
+              </select>
+            </label>
+            <label>
+              <span>親の健康保険扶養</span>
+              <select id="healthDependentSelect">
+                <option value="yes">入っている</option>
+                <option value="no">入っていない</option>
+                <option value="unknown">分からない</option>
+              </select>
+            </label>
+            <label>
+              <span>年末調整</span>
+              <select id="yearEndAdjustmentSelect">
+                <option value="yes">受ける・受けた</option>
+                <option value="no">受けない</option>
+                <option value="unknown">分からない</option>
+              </select>
+            </label>
           </div>
-          <div class="progress-track" id="progressTrack">
-            <div class="progress-fill actual" id="actualBar"></div>
-            <div class="progress-fill predicted" id="predictedBar"></div>
-            <div class="threshold-marker marker-103" aria-hidden="true"><span>103万</span></div>
-            <div class="threshold-marker marker-130" aria-hidden="true"><span>130万</span></div>
-          </div>
-          <div class="progress-scale">
-            <span>0</span>
-            <span>年収上限目安 130万円</span>
-          </div>
+        </details>
+      </section>
+
+      <section class="judgement-panel" aria-labelledby="judgement-title">
+        <div class="section-heading">
+          <h2 id="judgement-title">制度別の判定</h2>
+          <span class="subtle" id="rulesYearLabel">2026年基準</span>
+        </div>
+        <div class="judgement-grid" id="judgementGrid"></div>
+      </section>
+
+      <section class="safe-panel" aria-labelledby="safe-title">
+        <div class="section-heading">
+          <h2 id="safe-title">残りの月にいくら働けるか</h2>
+          <span class="subtle" id="safeLimitLabel">扶養維持目安</span>
+        </div>
+        <div class="safe-grid">
+          <article>
+            <span class="label">残り上限</span>
+            <strong id="remainingLimitAmount">0円</strong>
+          </article>
+          <article>
+            <span class="label">残り月数</span>
+            <strong id="remainingMonths">0か月</strong>
+          </article>
+          <article>
+            <span class="label">調整目安</span>
+            <strong id="adjustmentMessage">判定中</strong>
+          </article>
         </div>
       </section>
 
@@ -65,7 +137,7 @@
           <output id="monthlyOutput" for="monthlyRange monthlyInput">0円</output>
         </div>
         <div class="control-row">
-          <input id="monthlyRange" type="range" min="0" max="200000" step="5000" value="80000" aria-label="今後の平均シフト代">
+          <input id="monthlyRange" type="range" min="0" max="300000" step="5000" value="80000" aria-label="今後の平均シフト代">
           <label class="money-input">
             <span>月額</span>
             <input id="monthlyInput" type="number" min="0" max="300000" step="1000" inputmode="numeric" value="80000">
@@ -81,7 +153,7 @@
 
       <section class="month-panel" aria-labelledby="month-title">
         <div class="section-heading">
-          <h2 id="month-title">月別の実績</h2>
+          <h2 id="month-title">月別の収入</h2>
           <span class="subtle" id="actualCount">0か月入力済み</span>
         </div>
         <div class="month-list" id="monthList"></div>
@@ -90,40 +162,73 @@
       <section class="diagnosis-panel" aria-labelledby="diagnosis-title">
         <div class="section-heading">
           <h2 id="diagnosis-title">確定申告・控除チェック</h2>
-          <span class="subtle">簡易診断</span>
+          <span class="subtle">断定せず可能性で表示</span>
         </div>
-        <div class="question-grid">
-          <label><input type="checkbox" id="hasMultipleJobs"> 掛け持ち・単発バイトがある</label>
-          <label><input type="checkbox" id="taxWithheld"> 給与から所得税が引かれている</label>
-          <label><input type="checkbox" id="isStudent" checked> 12月31日時点で学生</label>
-          <label><input type="checkbox" id="hasOtherIncome"> 給与以外の所得がある</label>
+        <div class="tax-grid">
+          <label>
+            <span>年末調整されていない給与</span>
+            <input id="unadjustedSalaryInput" type="number" min="0" max="3000000" step="1000" inputmode="numeric">
+          </label>
+          <label>
+            <span>給与以外の所得</span>
+            <input id="otherIncomeInput" type="number" min="0" max="3000000" step="1000" inputmode="numeric">
+          </label>
+          <label>
+            <span>源泉徴収された所得税</span>
+            <input id="withheldTaxInput" type="number" min="0" max="1000000" step="100" inputmode="numeric">
+          </label>
+          <label class="check-label">
+            <input type="checkbox" id="claimedStudentDeduction">
+            <span>勤労学生控除を申告した</span>
+          </label>
         </div>
         <div class="diagnosis-result" id="diagnosisResult"></div>
+      </section>
+
+      <section class="data-panel" aria-labelledby="data-title">
+        <div class="section-heading">
+          <h2 id="data-title">データ管理</h2>
+          <button class="icon-button" id="resetButton" type="button" aria-label="入力をリセット" title="入力をリセット">↺</button>
+        </div>
+        <div class="data-actions">
+          <button type="button" id="exportJsonButton">JSONを書き出す</button>
+          <button type="button" id="exportCsvButton">CSVを書き出す</button>
+          <label class="import-button">
+            <span>JSONを読み込む</span>
+            <input id="importJsonInput" type="file" accept="application/json,.json">
+          </label>
+        </div>
       </section>
 
       <section class="note-panel" aria-labelledby="note-title">
         <h2 id="note-title">制度メモ</h2>
         <p>
-          このアプリはシフト調整の目安です。令和7年度税制改正により、所得税や扶養親族の所得要件は変更されています。
-          画面上の103万円・130万円は、学生がよく確認する従来の目安と社会保険の目安として残しています。
+          このアプリは給与収入を前提にした目安です。103万円は以前よく使われていた目安として扱い、メイン判定は本人の所得税、親の税扶養、健康保険扶養、住民税に分けています。
         </p>
         <div class="source-links">
-          <a href="https://www.nta.go.jp/users/gensen/2025kiso/index.htm" target="_blank" rel="noreferrer">国税庁: 令和7年度税制改正</a>
-          <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1175.htm" target="_blank" rel="noreferrer">国税庁: 勤労学生控除</a>
+          <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1800.htm" target="_blank" rel="noreferrer">国税庁: パート収入と所得税</a>
+          <a href="https://www.nenkin.go.jp/oshirase/taisetu/2025/202508/0819.html" target="_blank" rel="noreferrer">日本年金機構: 19歳以上23歳未満の被扶養者認定</a>
+          <a href="https://www.nta.go.jp/taxes/shiraberu/taxanswer/shotoku/1900.htm" target="_blank" rel="noreferrer">国税庁: 確定申告が必要な人</a>
         </div>
       </section>
     </main>
 
+    <div class="update-toast" id="updateToast" hidden>
+      <span>新しいバージョンがあります</span>
+      <button type="button" id="reloadAppButton">更新する</button>
+    </div>
+
     <dialog class="reset-dialog" id="resetDialog" aria-labelledby="resetDialogTitle">
       <form method="dialog">
-        <h2 id="resetDialogTitle">入力データをリセットしますか？</h2>
-        <p>月別の実績、予測設定、診断チェックをすべて初期状態に戻します。</p>
+        <h2 id="resetDialogTitle">この年の入力データをリセットしますか？</h2>
+        <p>選択中の年度の月別収入、予測設定、診断入力を初期状態に戻します。ほかの年度データは残ります。</p>
         <div class="dialog-actions">
           <button class="secondary-button" id="cancelResetButton" value="cancel" type="button">キャンセル</button>
           <button class="danger-button" id="confirmResetButton" value="reset" type="button">リセット</button>
         </div>
       </form>
     </dialog>
+
     <script src="app.js" defer></script>
   </body>
 </html>
