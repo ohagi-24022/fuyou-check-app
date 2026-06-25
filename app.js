@@ -65,8 +65,6 @@ const elements = {
   exportJsonButton: document.querySelector("#exportJsonButton"),
   exportCsvButton: document.querySelector("#exportCsvButton"),
   importJsonInput: document.querySelector("#importJsonInput"),
-  updateToast: document.querySelector("#updateToast"),
-  reloadAppButton: document.querySelector("#reloadAppButton"),
   ageInput: document.querySelector("#ageInput"),
   studentTypeSelect: document.querySelector("#studentTypeSelect"),
   incomeTypeSelect: document.querySelector("#incomeTypeSelect"),
@@ -695,7 +693,6 @@ function bindEvents() {
     }
   });
 
-  elements.reloadAppButton.addEventListener("click", () => window.location.reload());
 }
 
 function registerServiceWorker() {
@@ -704,16 +701,7 @@ function registerServiceWorker() {
   }
 
   window.addEventListener("load", () => {
-    navigator.serviceWorker.register("service-worker.js").then((registration) => {
-      registration.addEventListener("updatefound", () => {
-        const worker = registration.installing;
-        worker?.addEventListener("statechange", () => {
-          if (worker.state === "installed" && navigator.serviceWorker.controller) {
-            elements.updateToast.hidden = false;
-          }
-        });
-      });
-    }).catch(() => {});
+    navigator.serviceWorker.register("service-worker.js").catch(() => {});
   });
 }
 
