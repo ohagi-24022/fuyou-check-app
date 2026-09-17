@@ -8,7 +8,7 @@
     <title>扶養メーター</title>
     <link rel="manifest" href="manifest.webmanifest">
     <link rel="icon" href="icon.svg" type="image/svg+xml">
-    <link rel="stylesheet" href="styles.css?v=20260626-1">
+    <link rel="stylesheet" href="styles.css?v=20260917-1">
   </head>
   <body>
     <main class="app-shell">
@@ -131,6 +131,34 @@
         </div>
       </section>
 
+      <section class="chart-panel" aria-labelledby="chart-title">
+        <div class="section-heading">
+          <h2 id="chart-title">グラフで確認</h2>
+          <span class="subtle" id="chartSummary">年収推移</span>
+        </div>
+        <div class="chart-layout">
+          <article class="chart-card">
+            <div class="chart-heading">
+              <h3>月別の累計見込み</h3>
+              <span>実績・予定・予測を反映</span>
+            </div>
+            <div class="line-chart" id="monthlyChart" role="img" aria-label="月別の累計見込みグラフ"></div>
+            <div class="chart-legend">
+              <span><i class="legend-dot actual-dot"></i>実績・予定</span>
+              <span><i class="legend-dot predicted-dot"></i>予測</span>
+              <span><i class="legend-line"></i>主な基準</span>
+            </div>
+          </article>
+          <article class="chart-card">
+            <div class="chart-heading">
+              <h3>制度別の到達率</h3>
+              <span>上限までの距離</span>
+            </div>
+            <div class="limit-bars" id="limitChart" aria-label="制度別の到達率グラフ"></div>
+          </article>
+        </div>
+      </section>
+
       <section class="control-panel" aria-labelledby="shift-title">
         <div class="section-heading">
           <h2 id="shift-title">今後の平均シフト代</h2>
@@ -224,6 +252,6 @@
       </form>
     </dialog>
 
-    <script src="app.js?v=20260626-2" defer></script>
+    <script src="app.js?v=20260917-1" defer></script>
   </body>
 </html>

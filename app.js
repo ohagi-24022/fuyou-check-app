@@ -48,6 +48,9 @@ const elements = {
   nextYearButton: document.querySelector("#nextYearButton"),
   rulesYearLabel: document.querySelector("#rulesYearLabel"),
   judgementGrid: document.querySelector("#judgementGrid"),
+  chartSummary: document.querySelector("#chartSummary"),
+  monthlyChart: document.querySelector("#monthlyChart"),
+  limitChart: document.querySelector("#limitChart"),
   safeLimitLabel: document.querySelector("#safeLimitLabel"),
   remainingLimitAmount: document.querySelector("#remainingLimitAmount"),
   remainingMonths: document.querySelector("#remainingMonths"),
@@ -356,6 +359,22 @@ function getSafeMonthly(primaryLimit) {
   return { fixedTotal, remaining, remainingMonthCount, monthly };
 }
 
+function getMonthlySeries() {
+  const yearData = selectedYearData();
+  let running = 0;
+  return yearData.months.map((month, index) => {
+    const value = monthValue(month, yearData);
+    running += value;
+    return {
+      month: index + 1,
+      status: month.status,
+      value,
+      cumulative: running,
+      isEstimated: month.status === "predicted"
+    };
+  });
+}
+
 function renderAlerts(totals) {
   const alerts = [];
   if (totals.unenteredPast > 0) {
@@ -393,6 +412,108 @@ function renderJudgements(judgements) {
       </article>
     `;
   }).join("");
+}
+
+function renderMonthlyChart(series, judgements) {
+  const limitLines = judgements
+    .filter((item) => item.limit && item.key !== "resident")
+    .map((item) => ({ title: item.title, value: item.limit }));
+  const maxValue = Math.max(1, ...series.map((point) => point.cumulative), ...limitLines.map((line) => line.value));
+  const width = 640;
+  const height = 260;
+  const pad = { top: 28, right: 22, bottom: 34, left: 64 };
+  const chartWidth = width - pad.left - pad.right;
+  const chartHeight = height - pad.top - pad.bottom;
+  const xFor = (index) => pad.left + (chartWidth * index) / 11;
+  const yFor = (value) => pad.top + chartHeight - (chartHeight * value) / maxValue;
+  const path = series
+    .map((point, index) => `${index === 0 ? "M" : "L"} ${xFor(index).toFixed(1)} ${yFor(point.cumulative).toFixed(1)}`)
+    .join(" ");
+  const areaPath = `${path} L ${xFor(11).toFixed(1)} ${pad.top + chartHeight} L ${pad.left} ${pad.top + chartHeight} Z`;
+  const actualPath = series
+    .filter((point) => !point.isEstimated && point.status !== "unentered" && point.status !== "none")
+    .map((point) => point.month - 1);
+  const lastActualIndex = actualPath.length > 0 ? Math.max(...actualPath) : -1;
+  const actualLine = lastActualIndex >= 0
+    ? series.slice(0, lastActualIndex + 1)
+      .map((point, index) => `${index === 0 ? "M" : "L"} ${xFor(index).toFixed(1)} ${yFor(point.cumulative).toFixed(1)}`)
+      .join(" ")
+    : "";
+  const ticks = [0, Math.round(maxValue / 2), maxValue];
+  const lines = limitLines.map((line, index) => {
+    const y = yFor(line.value);
+    return `
+      <g>
+        <line class="limit-line limit-${index}" x1="${pad.left}" y1="${y.toFixed(1)}" x2="${width - pad.right}" y2="${y.toFixed(1)}"></line>
+        <text class="limit-label" x="${width - pad.right}" y="${Math.max(12, y - 5).toFixed(1)}" text-anchor="end">${line.title} ${shortYen(line.value)}</text>
+      </g>
+    `;
+  }).join("");
+  const circles = series.map((point, index) => {
+    const className = point.isEstimated ? "predicted-point" : point.status === "unentered" || point.status === "none" ? "empty-point" : "actual-point";
+    return `<circle class="${className}" cx="${xFor(index).toFixed(1)}" cy="${yFor(point.cumulative).toFixed(1)}" r="4"><title>${point.month}月 ${yen(point.cumulative)}</title></circle>`;
+  }).join("");
+  const monthLabels = series.map((point, index) => (
+    `<text class="month-tick" x="${xFor(index).toFixed(1)}" y="${height - 10}" text-anchor="middle">${point.month}</text>`
+  )).join("");
+  const yLabels = ticks.map((tick) => (
+    `<text class="value-tick" x="${pad.left - 10}" y="${yFor(tick).toFixed(1)}" text-anchor="end">${shortYen(tick)}</text>`
+  )).join("");
+
+  elements.monthlyChart.innerHTML = `
+    <svg viewBox="0 0 ${width} ${height}" preserveAspectRatio="xMidYMid meet">
+      <rect class="chart-bg" x="0" y="0" width="${width}" height="${height}"></rect>
+      ${ticks.map((tick) => `<line class="grid-line" x1="${pad.left}" y1="${yFor(tick).toFixed(1)}" x2="${width - pad.right}" y2="${yFor(tick).toFixed(1)}"></line>`).join("")}
+      ${lines}
+      <path class="income-area" d="${areaPath}"></path>
+      <path class="income-line predicted-line" d="${path}"></path>
+      ${actualLine ? `<path class="income-line actual-line" d="${actualLine}"></path>` : ""}
+      ${circles}
+      ${monthLabels}
+      ${yLabels}
+    </svg>
+  `;
+}
+
+function renderLimitChart(judgements) {
+  elements.limitChart.innerHTML = judgements.map((item) => {
+    const percent = item.limit ? Math.round((item.total / item.limit) * 100) : 0;
+    const capped = Math.min(100, Math.max(0, percent));
+    const remaining = item.limit ? item.limit - item.total : null;
+    const remainingText = remaining === null
+      ? "追加情報が必要"
+      : remaining >= 0
+        ? `あと ${yen(remaining)}`
+        : `${yen(Math.abs(remaining))}超過`;
+    return `
+      <div class="limit-bar-row ${item.state}">
+        <div class="limit-bar-meta">
+          <strong>${item.title}</strong>
+          <span>${item.limit ? `${percent}%` : "個別確認"}</span>
+        </div>
+        <div class="limit-bar-track">
+          <span style="width: ${capped}%"></span>
+        </div>
+        <p>${remainingText}</p>
+      </div>
+    `;
+  }).join("");
+}
+
+function renderCharts(series, judgements, totals) {
+  renderMonthlyChart(series, judgements);
+  renderLimitChart(judgements);
+  const actualLike = series.filter((point) => point.status === "actual" || point.status === "scheduled").length;
+  const predicted = series.filter((point) => point.status === "predicted").length;
+  elements.chartSummary.textContent = `入力済み ${actualLike}か月 / 予測 ${predicted}か月 / ${yen(totals.total)}`;
+}
+
+function shortYen(value) {
+  if (value >= 10000) {
+    const man = value / 10000;
+    return `${Number.isInteger(man) ? man.toLocaleString("ja-JP") : man.toFixed(1)}万`;
+  }
+  return value.toLocaleString("ja-JP");
 }
 
 function renderSafeMonthly(primaryLimit, safe) {
@@ -517,6 +638,7 @@ function updateUI() {
   const judgements = getJudgements(totals.total);
   const primaryLimit = getPrimaryLimit(judgements);
   const safe = getSafeMonthly(primaryLimit);
+  const series = getMonthlySeries();
 
   elements.targetYearLabel.textContent = `${store.selectedYear}年の記録`;
   elements.currentYearButton.textContent = `${store.selectedYear}年`;
@@ -529,6 +651,7 @@ function updateUI() {
 
   renderAlerts(totals);
   renderJudgements(judgements);
+  renderCharts(series, judgements, totals);
   renderSafeMonthly(primaryLimit, safe);
   renderDiagnosis(totals);
   updateOverall(judgements);
